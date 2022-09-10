@@ -1,0 +1,21 @@
+{{define "main"}}
+<div class="alert alert-info" role="alert">
+    <h1 class="alert">Здравствуйте!</h1>
+    <hr>
+</div>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Menu types</title>
+    </head>
+    <body>
+        <h1>Категории блюд:</h1>
+        <ul>
+        <div class="alert alert-info" role="alert"></div>
+            {{range $key, $value := .}}
+                <li><b> <a class="alert-link" href="{{ $value }}"> {{ $key }} </a></b></li>
+            {{end}}
+        </ul>
+    </body>
+</html>
+{{end}}

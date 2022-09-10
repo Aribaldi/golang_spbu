@@ -1,0 +1,58 @@
+{{define "main"}}
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title> Dishes </title>
+    </head>
+    <style>
+        .content-table {
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 1.2em;
+            min-width: 400px;
+            border-radius: 5px 0 0;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        }
+        .content-table thead tr {
+            background-color: lightskyblue;
+            color: lightskyblue;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .content-table th,
+        .content-table td {
+            padding: 12px 15px;
+
+        }
+
+        .content-table tbody tr {
+            border-bottom: lightgray;
+        }
+
+        .content-table tbody tr:nth-of-type(even) {
+            background-color: lightgray;
+        }
+
+        .content-table tbody tr:last-of-type {
+            border-bottom: 2px solid lightskyblue;
+        }
+
+    </style>
+    <body>
+    <h1>Блюда</h1>
+    <table class="content-table">
+    <tr>
+        <td> <b> Название </b> </td>
+        <td> <b> Цена </b> </td>
+        <td> <b> Описание </b> </td>
+    </tr>
+    {{range .}}<tr>
+    {{range rangeStruct .}} <td>{{.}}</td>
+    {{end}}</tr>
+    {{end}}
+    </table>
+</body>
+</html>
+{{end}}
