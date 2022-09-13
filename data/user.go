@@ -8,10 +8,9 @@ import (
 )
 
 type User struct {
-	Uuid     string
+	Id       int
 	Fname    string
 	Lname    string
-	Username string
 	Email    string
 	Password string
 }
@@ -24,22 +23,23 @@ func SaveData(u *User) (int, error) {
 	return customer_id, err_2
 }
 
-func UserExists(u *User) bool {
+func UserExists(u *User) User {
 	var db, _ = sql.Open("postgres", db_conn)
-	defer db.Close()
 	var ps, us string
-	q, err := db.Query("SELECT login, password FROM public.customer WHERE login = $1 ", u.Email)
+	defer db.Close()
+	//var ps, us string
+	q, err := db.Query("SELECT login, password, first_name, last_name, customer_id FROM public.customer WHERE login = $1 ", u.Email)
 	if err != nil {
-		return false
+		return User{}
 	}
 	for q.Next() {
-		q.Scan(&us, &ps)
+		q.Scan(&us, &ps, &u.Fname, &u.Lname, &u.Id)
 	}
 	pw := bcrypt.CompareHashAndPassword([]byte(ps), []byte(u.Password))
 	if us == u.Email && pw == nil {
-		return true
+		return *u
 	}
-	return false
+	return User{}
 }
 
 func EncryptPass(password string) string {

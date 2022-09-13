@@ -1,8 +1,11 @@
 {{define "main"}}
 <div class="alert alert-info" role="alert">
-    <h1 class="alert">Здравствуйте!</h1>
+    {{with .user}}
+    <h1 class="alert">Здравствуйте, {{.Fname}} {{.Lname}}! <br/> Пожалуйста, выберите категорию блюд</h1>
     <hr>
+    {{end}}
 </div>
+
 <html>
     <head>
         <meta charset="UTF-8">
@@ -12,10 +15,16 @@
         <h1>Категории блюд:</h1>
         <ul>
         <div class="alert alert-info" role="alert"></div>
-            {{range $key, $value := .}}
-                <li><b> <a class="alert-link" href="{{ $value }}"> {{ $key }} </a></b></li>
+            {{with .categs}}
+                {{range $key, $value := .}}
+                    <li><b> <a class="alert-link" href="{{ $value }}"> {{ $key }} </a></b></li>
+                {{end}}
             {{end}}
         </ul>
     </body>
 </html>
+
+<form action="/logout" method="post">
+    <button class="btn btn-warning" type="submit">Logout</button>
+</form>
 {{end}}

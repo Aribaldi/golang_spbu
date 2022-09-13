@@ -2,6 +2,7 @@ package data
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/securecookie"
 )
@@ -12,8 +13,11 @@ var cookieHandler = securecookie.New(
 
 func SetSession(u *User, w http.ResponseWriter) {
 	value := map[string]string{
-		"name": u.Email,
-		"pass": u.Password,
+		"login": u.Email,
+		"pass":  u.Password,
+		"fname": u.Fname,
+		"lname": u.Lname,
+		"id":    strconv.Itoa(u.Id),
 	}
 	if encoded, err := cookieHandler.Encode("session", value); err == nil {
 		cookie := &http.Cookie{
@@ -25,14 +29,18 @@ func SetSession(u *User, w http.ResponseWriter) {
 	}
 }
 
-func GetUserName(r *http.Request) (username string) {
+func GetUserName(r *http.Request) User {
+	var res User
 	if cookie, err := r.Cookie("session"); err == nil {
 		cookieValue := make(map[string]string)
 		if err = cookieHandler.Decode("session", cookie.Value, &cookieValue); err == nil {
-			username = cookieValue["name"]
+			res.Email = cookieValue["login"]
+			res.Fname = cookieValue["fname"]
+			res.Lname = cookieValue["lname"]
+			res.Id, _ = strconv.Atoi(cookieValue["id"])
 		}
 	}
-	return username
+	return res
 }
 
 func ClearSession(w http.ResponseWriter) {

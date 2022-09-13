@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"food/data"
 	"reflect"
@@ -13,6 +14,8 @@ import (
 var router = mux.NewRouter()
 
 var templateFuncs = template.FuncMap{"rangeStruct": RangeStructer}
+
+type M map[string]interface{}
 
 func GetCategMenu(category string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +37,22 @@ func CategMenuWrapper() {
 	for k, v := range categs {
 		full_path := "/" + v
 		http.Handle(full_path, GetCategMenu(k))
+	}
+}
+
+func AddDish(id int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := data.GetUserName(r)
+		data.AddToCart(user.Id, id)
+
+	})
+}
+
+func DishWrapper() {
+	ids := data.DishIds()
+	for id := range ids {
+		full_path := "/" + "dish/" + strconv.Itoa(id)
+		http.Handle(full_path, AddDish(id))
 	}
 }
 
@@ -70,7 +89,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	redirect := "/"
 	if name != "" && pass != "" {
-		if data.UserExists(u) {
+		if data.UserExists(u) != (data.User{}) {
 			data.SetSession(u, w)
 			redirect = "/categs"
 		}
@@ -86,10 +105,10 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func categs(w http.ResponseWriter, r *http.Request) {
 	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/menus.html")
-	username := data.GetUserName(r)
+	user := data.GetUserName(r)
 	categs := data.FoodCategs()
-	if username != "" {
-		err := tmpl.ExecuteTemplate(w, "base", categs)
+	if user != (data.User{}) {
+		err := tmpl.ExecuteTemplate(w, "base", M{"categs": categs, "user": user})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -106,10 +125,9 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		f := r.FormValue("fName")
 		l := r.FormValue("lName")
 		em := r.FormValue("email")
-		un := r.FormValue("userName")
 		pass := data.EncryptPass(r.FormValue("password"))
 
-		u := &data.User{Fname: f, Lname: l, Email: em, Username: un, Password: pass}
+		u := &data.User{Fname: f, Lname: l, Email: em, Password: pass}
 		data.SaveData(u)
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
@@ -124,5 +142,6 @@ func main() {
 	router.HandleFunc("/signup", signup).Methods("POST", "GET")
 	http.Handle("/", router)
 	CategMenuWrapper()
+	DishWrapper()
 	http.ListenAndServe(":8000", nil)
 }
