@@ -56,6 +56,13 @@ func DishWrapper() {
 	}
 }
 
+func Cart(w http.ResponseWriter, r *http.Request) {
+	u := data.GetUserName(r)
+	dish := data.CartInfo(u.Id)
+	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/cart.html")
+	tmpl.ExecuteTemplate(w, "base", dish)
+}
+
 func RangeStructer(args ...interface{}) []interface{} {
 	if len(args) == 0 {
 		return nil
@@ -140,6 +147,7 @@ func main() {
 	router.HandleFunc("/logout", logout).Methods("POST")
 	router.HandleFunc("/categs", categs)
 	router.HandleFunc("/signup", signup).Methods("POST", "GET")
+	router.HandleFunc("/cart", Cart)
 	http.Handle("/", router)
 	CategMenuWrapper()
 	DishWrapper()

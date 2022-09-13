@@ -14,6 +14,14 @@ type Dish struct {
 	Dish_name  string
 	Dish_price float32
 	Dish_descr string
+	Count      int
+}
+
+type CartRecord struct {
+	Dish_name  string
+	Dish_price float32
+	Count      int
+	Overall    float32
 }
 
 const db_conn string = "host=localhost port=5432 user=postgres dbname=food_delivery_golang password=postgres sslmode=disable"
@@ -67,6 +75,27 @@ func AddToCart(customer_id int, dish_id int) error {
 		log.Fatal(err_2)
 	}
 	return err_2
+}
+
+func CartInfo(customer_id int) []CartRecord {
+	var db, _ = sql.Open("postgres", db_conn)
+	var res []CartRecord
+	defer db.Close()
+	rows, err := db.Query("SELECT menu.dish_name, menu.dish_price, COUNT (menu.dish_id) FROM public.cart, public.menu WHERE public.cart.dish_id = public.menu.dish_id AND public.cart.customer_id = $1 GROUP BY menu.dish_name, menu.dish_price", customer_id)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	for rows.Next() {
+		var temp CartRecord
+		err := rows.Scan(&temp.Dish_name, &temp.Dish_price, &temp.Count)
+		temp.Overall = float32(temp.Count) * temp.Dish_price
+		if err != nil {
+			log.Fatal(err)
+		}
+		res = append(res, temp)
+	}
+	return res
 }
 
 func GetUrl(str string) string {
