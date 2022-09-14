@@ -1,20 +1,18 @@
 {{define "main"}}
-<div class="alert alert-info" role="alert">
+{{template "navbar" .}}
     {{with .user}}
-    <h1 class="alert">Здравствуйте, {{.Fname}} {{.Lname}}! <br/> Пожалуйста, выберите категорию блюд</h1>
+    <h1 class="alert alert-info">Здравствуйте, {{.Fname}} {{.Lname}}!</h1>
+    <h3 class="alert alert-info"> Пожалуйста, выберите категорию блюд </h3>
     <hr>
     {{end}}
-</div>
-
 <html>
     <head>
         <meta charset="UTF-8">
         <title>Menu types</title>
     </head>
     <body>
-        <h1>Категории блюд:</h1>
+        <h1 class="alert alert-info">Категории блюд:</h1>
         <ul>
-        <div class="alert alert-info" role="alert"></div>
             {{with .categs}}
                 {{range $key, $value := .}}
                     <li><b> <a class="alert-link" href="{{ $value }}"> {{ $key }} </a></b></li>
@@ -24,7 +22,22 @@
     </body>
 </html>
 
-<form action="/logout" method="post">
+<form action="/logout" method="post" style="text-align: center; ">
     <button class="btn btn-warning" type="submit">Logout</button>
 </form>
+{{end}}
+
+
+
+{{define "navbar"}}
+<nav class="navbar navbar-bg-primary">
+    <ul class="nav navbar-nav">
+        <li class="nav-item">
+            <a class="nav-link" href="/categs">Категории</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/cart">Корзина</a>
+        </li>
+    </ul>
+</nav>
 {{end}}

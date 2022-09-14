@@ -18,6 +18,7 @@ type Dish struct {
 }
 
 type CartRecord struct {
+	Id         int32
 	Dish_name  string
 	Dish_price float32
 	Count      int
@@ -77,18 +78,28 @@ func AddToCart(customer_id int, dish_id int) error {
 	return err_2
 }
 
+func RemoveFromCart(customer_id int, dish_id int) error {
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	_, err := db.Exec("WITH rows AS (SELECT public.cart.cart_id FROM public.cart WHERE public.cart.customer_id = $1 AND public.cart.dish_id = $2 LIMIT 1) DELETE FROM public.cart WHERE public.cart.cart_id IN (SELECT * FROM rows);  ", customer_id, dish_id)
+	if err != nil {
+		panic(err)
+	}
+	return err
+}
+
 func CartInfo(customer_id int) []CartRecord {
 	var db, _ = sql.Open("postgres", db_conn)
 	var res []CartRecord
 	defer db.Close()
-	rows, err := db.Query("SELECT menu.dish_name, menu.dish_price, COUNT (menu.dish_id) FROM public.cart, public.menu WHERE public.cart.dish_id = public.menu.dish_id AND public.cart.customer_id = $1 GROUP BY menu.dish_name, menu.dish_price", customer_id)
+	rows, err := db.Query("SELECT menu.dish_id, menu.dish_name, menu.dish_price, COUNT (menu.dish_id) FROM public.cart, public.menu WHERE public.cart.dish_id = public.menu.dish_id AND public.cart.customer_id = $1 GROUP BY menu.dish_id, menu.dish_name, menu.dish_price", customer_id)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	for rows.Next() {
 		var temp CartRecord
-		err := rows.Scan(&temp.Dish_name, &temp.Dish_price, &temp.Count)
+		err := rows.Scan(&temp.Id, &temp.Dish_name, &temp.Dish_price, &temp.Count)
 		temp.Overall = float32(temp.Count) * temp.Dish_price
 		if err != nil {
 			log.Fatal(err)

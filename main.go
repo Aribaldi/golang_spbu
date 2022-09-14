@@ -43,7 +43,13 @@ func CategMenuWrapper() {
 func AddDish(id int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := data.GetUserName(r)
-		data.AddToCart(user.Id, id)
+		switch r.Method {
+		case "POST":
+			data.AddToCart(user.Id, id)
+		case "GET":
+			data.RemoveFromCart(user.Id, id)
+			http.Redirect(w, r, "/cart", http.StatusFound)
+		}
 
 	})
 }
@@ -59,8 +65,12 @@ func DishWrapper() {
 func Cart(w http.ResponseWriter, r *http.Request) {
 	u := data.GetUserName(r)
 	dish := data.CartInfo(u.Id)
+	var sum float32 = 0
+	for _, d := range dish {
+		sum += d.Overall
+	}
 	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/cart.html")
-	tmpl.ExecuteTemplate(w, "base", dish)
+	tmpl.ExecuteTemplate(w, "base", M{"Dish": dish, "Sum": sum})
 }
 
 func RangeStructer(args ...interface{}) []interface{} {
@@ -111,7 +121,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func categs(w http.ResponseWriter, r *http.Request) {
-	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/menus.html")
+	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/menus.html")
 	user := data.GetUserName(r)
 	categs := data.FoodCategs()
 	if user != (data.User{}) {

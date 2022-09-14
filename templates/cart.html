@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title> Dishes </title>
+    <title> Cart </title>
 </head>
 <style>
     .content-table {
@@ -44,27 +44,34 @@
 </style>
 
 <body>
-    <h1>Блюда</h1>
+    <h1>Корзина</h1>
     <table class="content-table">
         <tr>
             <td> <b> Название </b> </td>
-            <td> <b> Цена </b> </td>
-            <td> <b> Описание </b> </td>
-            <td> <b> Добавить в корзину </b> </td>
+            <td> <b> Цена за шт. </b> </td>
+            <td> <b> Количество </b> </td>
+            <td> <b> Итоговая цена </b> </td>
+            <td> <b> Удалить </b> </td>
         </tr>
+        {{with .Dish}}
         {{range .}}
         <tr>
             <td>{{.Dish_name }}</td>
             <td>{{.Dish_price}}</td>
-            <td>{{.Dish_descr}}</td>
+            <td>{{.Count}}</td>
+            <td>{{.Overall}}</td>
             <td>
-                <iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
-                <form action="/dish/{{.Id}}" method="POST" target="dummyframe">
-                    <button class="btn btn-primary" type="submit">Добавить</button>
-                </form>
+                <form action="/dish/{{.Id}}" method="DELETE" target="dummyframe">
+                    <button class="btn btn-primary" type="submit">Удалить</button>
+                </form></td>
         </tr>
         {{end}}
+        {{end}}
     </table>
+
+    {{with .Sum}}
+    <h1>Итого: {{ . }} </h1>
+    {{end}}
 </body>
 
 </html>
