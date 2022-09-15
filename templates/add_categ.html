@@ -1,0 +1,12 @@
+{{define "main"}}
+<h1 class="alert alert-info">Добавьте категорию</h1>
+<div class="container">
+    <form method="POST" action="/add_categ">
+        <label class="form-control" for="categ">Название категории</label>
+        <input class="form-control" type="text" id="categ" name="categ">
+        <label class="form-control" for="description">Описание категории</label>
+        <input class="form-control" type="text" id="description" name="description">
+        <button class="btn btn-info" type="submit">Добавить</button>
+    </form>
+</div>
+{{end}}

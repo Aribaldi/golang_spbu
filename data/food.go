@@ -113,6 +113,26 @@ func GetUrl(str string) string {
 	return "categs/" + strings.Replace(strings.ToLower(str), " ", "_", -1)
 }
 
+func AddCateg(categ_name string, descr string) error {
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	_, err := db.Exec(`INSERT INTO public.food_categs (categ_name, description) VALUES ($1, $2) ;`, categ_name, descr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return err
+}
+
+func RemoveCateg(categ string) error {
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	_, err := db.Exec("DELETE FROM public.food_categs WHERE public.food_categs.categ_name = $1", categ)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return err
+}
+
 func FoodCategs() map[string]string {
 	res := make(map[string]string)
 	var db, _ = sql.Open("postgres", db_conn)

@@ -19,14 +19,20 @@ type M map[string]interface{}
 
 func GetCategMenu(category string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		categ_menu := data.DishTable(category)
-		tmpl, err := template.New("tmpl").Funcs(templateFuncs).ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/categ_list.html")
-		if err != nil {
-			panic(err)
-		}
-		err = tmpl.ExecuteTemplate(w, "base", categ_menu)
-		if err != nil {
-			panic(err)
+		switch r.Method {
+		case "GET":
+			categ_menu := data.DishTable(category)
+			tmpl, err := template.New("tmpl").Funcs(templateFuncs).ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/categ_list.html")
+			if err != nil {
+				panic(err)
+			}
+			err = tmpl.ExecuteTemplate(w, "base", categ_menu)
+			if err != nil {
+				panic(err)
+			}
+		case "POST":
+			data.RemoveCateg(category)
+			http.Redirect(w, r, "/categs", http.StatusFound)
 		}
 
 	})
@@ -121,7 +127,15 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func categs(w http.ResponseWriter, r *http.Request) {
-	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/menus.html")
+	//tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/menus.html")
+	tmpl, err := template.New("tmpl").Funcs(template.FuncMap{"isAdmin": func(user data.User) bool {
+		return user.Role == "admin"
+	},
+	}).ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/menus.html")
+	if err != nil {
+		panic(err)
+	}
+
 	user := data.GetUserName(r)
 	categs := data.FoodCategs()
 	if user != (data.User{}) {
@@ -150,10 +164,29 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func AddCategForm(w http.ResponseWriter, r *http.Request) {
+	u := &data.User{}
+	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/add_categ.html")
+	err := tmpl.ExecuteTemplate(w, "base", u)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func AddCateg(w http.ResponseWriter, r *http.Request) {
+	categ_name := r.FormValue("categ")
+	categ_descr := r.FormValue("description")
+	data.AddCateg(categ_name, categ_descr)
+	http.Redirect(w, r, "/categs", http.StatusFound)
+
+}
+
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./templates/static"))))
 	router.HandleFunc("/", indexPage)
 	router.HandleFunc("/login", login).Methods("POST")
+	router.HandleFunc("/add_categ_form", AddCategForm)
+	router.HandleFunc("/add_categ", AddCateg).Methods("POST")
 	router.HandleFunc("/logout", logout).Methods("POST")
 	router.HandleFunc("/categs", categs)
 	router.HandleFunc("/signup", signup).Methods("POST", "GET")

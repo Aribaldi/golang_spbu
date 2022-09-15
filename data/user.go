@@ -13,6 +13,7 @@ type User struct {
 	Lname    string
 	Email    string
 	Password string
+	Role     string
 }
 
 func SaveData(u *User) (int, error) {
@@ -28,12 +29,12 @@ func UserExists(u *User) User {
 	var ps, us string
 	defer db.Close()
 	//var ps, us string
-	q, err := db.Query("SELECT login, password, first_name, last_name, customer_id FROM public.customer WHERE login = $1 ", u.Email)
+	q, err := db.Query("SELECT login, password, first_name, last_name, customer_id, role FROM public.customer WHERE login = $1 ", u.Email)
 	if err != nil {
 		return User{}
 	}
 	for q.Next() {
-		q.Scan(&us, &ps, &u.Fname, &u.Lname, &u.Id)
+		q.Scan(&us, &ps, &u.Fname, &u.Lname, &u.Id, &u.Role)
 	}
 	pw := bcrypt.CompareHashAndPassword([]byte(ps), []byte(u.Password))
 	if us == u.Email && pw == nil {

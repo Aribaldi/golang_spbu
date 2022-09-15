@@ -18,6 +18,7 @@ func SetSession(u *User, w http.ResponseWriter) {
 		"fname": u.Fname,
 		"lname": u.Lname,
 		"id":    strconv.Itoa(u.Id),
+		"role":  u.Role,
 	}
 	if encoded, err := cookieHandler.Encode("session", value); err == nil {
 		cookie := &http.Cookie{
@@ -38,6 +39,7 @@ func GetUserName(r *http.Request) User {
 			res.Fname = cookieValue["fname"]
 			res.Lname = cookieValue["lname"]
 			res.Id, _ = strconv.Atoi(cookieValue["id"])
+			res.Role = cookieValue["role"]
 		}
 	}
 	return res

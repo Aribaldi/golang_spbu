@@ -15,19 +15,30 @@
         <ul>
             {{with .categs}}
                 {{range $key, $value := .}}
-                    <li><b> <a class="alert-link" href="{{ $value }}"> {{ $key }} </a></b></li>
+                    <li><b> <a class="alert-link" href="{{ $value }}"> {{ $key }} 
+                        {{with $.user}} {{if isAdmin .}}  
+                        <form action="/{{ $value }}" method="post">
+                            <button class="btn btn-danger" type="submit">Удалить</button>
+                        </form>
+                        {{end}} 
+                        {{end}} </a></b></li>
                 {{end}}
             {{end}}
         </ul>
     </body>
 </html>
 
-<form action="/logout" method="post" style="text-align: center; ">
-    <button class="btn btn-warning" type="submit">Logout</button>
+
+{{if isAdmin .user}}
+<form action="/add_categ_form" method="post" style="text-align: center; ">
+    <button class="btn btn-primary" type="submit">Добавить категорию</button>
 </form>
 {{end}}
 
-
+<form action="/logout" method="post" style="text-align: right; ">
+    <button class="btn btn-warning" type="submit">Logout</button>
+</form>
+{{end}}
 
 {{define "navbar"}}
 <nav class="navbar navbar-bg-primary">
