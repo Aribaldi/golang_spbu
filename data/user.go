@@ -8,12 +8,13 @@ import (
 )
 
 type User struct {
-	Id       int
-	Fname    string
-	Lname    string
-	Email    string
-	Password string
-	Role     string
+	Id       int               `valid:"-"`
+	Fname    string            `valid:"required,utfletter"`
+	Lname    string            `valid:"required,utfletter"`
+	Email    string            `valid:"required,email"`
+	Password string            `valid:"required"`
+	Role     string            `valid:"-"`
+	Errors   map[string]string `valid:"-"`
 }
 
 func SaveData(u *User) (int, error) {

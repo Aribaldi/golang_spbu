@@ -54,3 +54,29 @@ func ClearSession(w http.ResponseWriter) {
 	}
 	http.SetCookie(w, cookie)
 }
+
+func GetMsg(w http.ResponseWriter, r *http.Request, name string) (msg string) {
+	if cookie, err := r.Cookie(name); err == nil {
+		cookieValue := make(map[string]string)
+		if err = cookieHandler.Decode(name, cookie.Value, &cookieValue); err == nil {
+			msg = cookieValue[name]
+			ClearSession(w)
+		}
+	}
+
+	return msg
+}
+
+func SetMsg(w http.ResponseWriter, name string, msg string) {
+	value := map[string]string{
+		name: msg,
+	}
+	if encoded, err := cookieHandler.Encode(name, value); err == nil {
+		cookie := &http.Cookie{
+			Name:  name,
+			Value: encoded,
+			Path:  "/",
+		}
+		http.SetCookie(w, cookie)
+	}
+}

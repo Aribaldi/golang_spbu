@@ -2,11 +2,15 @@ package main
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 
 	"food/data"
 	"reflect"
+	"strings"
+
+	"github.com/asaskevich/govalidator"
 
 	"github.com/gorilla/mux"
 )
@@ -52,6 +56,7 @@ func AddDish(id int) http.Handler {
 		switch r.Method {
 		case "POST":
 			data.AddToCart(user.Id, id)
+			http.Redirect(w, r, "/cart", http.StatusFound)
 		case "GET":
 			data.RemoveFromCart(user.Id, id)
 			http.Redirect(w, r, "/cart", http.StatusFound)
@@ -97,11 +102,23 @@ func RangeStructer(args ...interface{}) []interface{} {
 }
 
 func indexPage(w http.ResponseWriter, r *http.Request) {
+	msg := data.GetMsg(w, r, "message")
 	u := &data.User{}
-	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html")
-	err := tmpl.ExecuteTemplate(w, "base", u)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	u.Errors = make(map[string]string)
+	if msg != "" {
+		u.Errors["message"] = msg
+		tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html")
+		err := tmpl.ExecuteTemplate(w, "base", u)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	} else {
+		u := &data.User{}
+		tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html")
+		err := tmpl.ExecuteTemplate(w, "base", u)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -112,11 +129,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	redirect := "/"
 	if name != "" && pass != "" {
-		if data.UserExists(u) != (data.User{}) {
+		if data.UserExists(u).Fname != "" {
 			data.SetSession(u, w)
 			redirect = "/categs"
+		} else {
+			data.SetMsg(w, "message", "Пожалуйста, зарегестрируйтесь иди введите корректные почту и пароль!")
 		}
-
+	} else {
+		data.SetMsg(w, "message", "Поле почты или пароля пустые!")
 	}
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
@@ -127,7 +147,6 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func categs(w http.ResponseWriter, r *http.Request) {
-	//tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/menus.html")
 	tmpl, err := template.New("tmpl").Funcs(template.FuncMap{"isAdmin": func(user data.User) bool {
 		return user.Role == "admin"
 	},
@@ -138,7 +157,7 @@ func categs(w http.ResponseWriter, r *http.Request) {
 
 	user := data.GetUserName(r)
 	categs := data.FoodCategs()
-	if user != (data.User{}) {
+	if user.Fname != "" {
 		err := tmpl.ExecuteTemplate(w, "base", M{"categs": categs, "user": user})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -146,21 +165,63 @@ func categs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func add_history_record(w http.ResponseWriter, r *http.Request) {
+	user := data.GetUserName(r)
+	data.CreateOrder(int32(user.Id))
+
+}
+
 func signup(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		tmpl, _ := template.ParseFiles("./templates/signup.html", "./templates/index.html", "./templates/base.html")
 		u := &data.User{}
+		u.Errors = make(map[string]string)
+		u.Errors["lname"] = data.GetMsg(w, r, "lname")
+		u.Errors["fname"] = data.GetMsg(w, r, "fname")
+		u.Errors["email"] = data.GetMsg(w, r, "email")
+		u.Errors["username"] = data.GetMsg(w, r, "username")
+		u.Errors["password"] = data.GetMsg(w, r, "password")
 		tmpl.ExecuteTemplate(w, "base", u)
 	case "POST":
 		f := r.FormValue("fName")
 		l := r.FormValue("lName")
 		em := r.FormValue("email")
-		pass := data.EncryptPass(r.FormValue("password"))
-
+		pass := r.FormValue("password")
 		u := &data.User{Fname: f, Lname: l, Email: em, Password: pass}
-		data.SaveData(u)
-		http.Redirect(w, r, "/", http.StatusFound)
+		result, err := govalidator.ValidateStruct(u)
+
+		if err != nil {
+			e := err.Error()
+			if re := strings.Contains(e, "Lname"); re {
+				data.SetMsg(w, "lname", "Пожалуйста, введите корректную фамилию!")
+			}
+			if re := strings.Contains(e, "Email"); re {
+				data.SetMsg(w, "email", "Пожалуйста, введите корректный почтовый адрес!")
+			}
+			if re := strings.Contains(e, "Fname"); re {
+				data.SetMsg(w, "fname", "Пожалуйста, введите корректную фамилию!")
+			}
+			if re := strings.Contains(e, "Password"); re {
+				data.SetMsg(w, "password", "Пожалуйста, введите пароль!")
+			}
+
+		}
+
+		if r.FormValue("password") != r.FormValue("cpassword") {
+			data.SetMsg(w, "password", "Пароли не совпадают!")
+			http.Redirect(w, r, "/signup", http.StatusFound)
+			return
+		}
+
+		if result {
+			u.Password = data.EncryptPass(pass)
+			data.SaveData(u)
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+		http.Redirect(w, r, "/signup", http.StatusFound)
+
 	}
 }
 
@@ -181,6 +242,19 @@ func AddCateg(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func ViewOrdersHistory(w http.ResponseWriter, r *http.Request) {
+	user := data.GetUserName(r)
+	orders := data.OrderHistory(int32(user.Id))
+	log.Println("Showing orders for user", user.Id)
+	log.Println(orders)
+	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/orders_hist.html")
+	err := tmpl.ExecuteTemplate(w, "base", M{"orders": orders, "user": user})
+	if err != nil {
+		panic(err)
+	}
+
+}
+
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./templates/static"))))
 	router.HandleFunc("/", indexPage)
@@ -190,7 +264,9 @@ func main() {
 	router.HandleFunc("/logout", logout).Methods("POST")
 	router.HandleFunc("/categs", categs)
 	router.HandleFunc("/signup", signup).Methods("POST", "GET")
+	router.HandleFunc("/add_history_record", add_history_record)
 	router.HandleFunc("/cart", Cart)
+	router.HandleFunc("/history", ViewOrdersHistory)
 	http.Handle("/", router)
 	CategMenuWrapper()
 	DishWrapper()

@@ -1,23 +1,43 @@
 {{define "main"}}
 {{template "header" .}}
-<h1 class="alert alert-info">Sign Up</h1>
+<h1 class="alert alert-info">Регистрация</h1>
 <div class="container">
     <form  method="POST" action="/signup">
-        <label class="form-control-label" for="userName">User Name</label>
-        <input class="form-control" type="text" id="userName" name="userName">
-        <label class="form-control-label" for="fName">First Name</label>
+        <label class="form-control-label" for="fName">Имя</label>
+        {{with .Errors.fname}}
+        <div class="alert alert-danger">
+            {{.}}
+        </div>
+        {{end}}
         <input class="form-control" type="text" id="fName" name="fName">
-        <label class="form-control-label" for="lName">Last Name</label>
+        <label class="form-control-label" for="lName">Фамилия</label>
+        {{with .Errors.lname}}
+        <div class="alert alert-danger">
+            {{.}}
+        </div>
+        {{end}}
         <input class="form-control" type="text" id="lName" name="lName">
-        <label class="form-control-label" for="email">Email</label>
+        <label class="form-control-label" for="email">Электронная почта</label>
+        {{with .Errors.email}}
+        <div class="alert alert-danger">
+            {{.}}
+        </div>
+        {{end}}
         <input class="form-control" type="email" id="email" name="email">
-        <label class="form-control-label" for="password">Password</label>
+        <label class="form-control-label" for="password">Пароль</label>
+        {{with .Errors.password}}
+        <div class="alert alert-danger">
+            {{.}}
+        </div>
+        {{end}}
         <input class="form-control" type="password" id="password" name="password">
-        <button class="btn btn-primary" type="submit">Submit</button>
+        <label class="form-control-label" for="cpassword">Введите пароль повторно</label>
+        <input class="form-control" type="password" id="cpassword" name="cpassword">
+        <button class="btn btn-primary" type="submit">Подтвердить</button>
     </form>
 </div>
 <div class="alert alert-info">
-    <a href="/" class="alert">Sign In!</a>
+    <a href="/" class="alert">Войти в систему</a>
 </div>
 {{template "footer" .}}
 {{end}}

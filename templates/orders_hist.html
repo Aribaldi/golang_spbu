@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title> Cart </title>
+    <title> Order_hist </title>
 </head>
 <style>
     .content-table {
@@ -44,39 +44,31 @@
 </style>
 
 <body>
-    <h1>Корзина</h1>
-    <table class="content-table">
-        <tr>
-            <td> <b> Название </b> </td>
-            <td> <b> Цена за шт. </b> </td>
-            <td> <b> Количество </b> </td>
-            <td> <b> Итоговая цена </b> </td>
-            <td> <b> Удалить </b> </td>
-        </tr>
-        {{with .Dish}}
+    <ol class="list-group">
+        {{with .orders}}
         {{range .}}
-        <tr>
-            <td>{{.Dish_name }}</td>
-            <td>{{.Dish_price}}</td>
-            <td>{{.Count}}</td>
-            <td>{{.Overall}}</td>
-            <td>
-                <form action="/dish/{{.DishId}}" method="get" target="dummyframe">
-                    <button class="btn btn-danger" type="submit">Удалить</button>
-                </form></td>
-        </tr>
+
+        <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="ms-2 me-auto">
+                <div class="fw-bold">Заказ {{.DateCreated.Format "02-01-2006"}}</div>
+
+                <ol class="list-group list-group-numbered">
+                    {{range .Items}}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">{{.Dish.Dish_name}}</div>
+                            <p>{{.TotalPrice}}</p>
+                        </div>
+
+                        <span class="badge bg-primary rounded-pill">{{ .Count }}</span>
+                    </li>
+                    {{end}}
+                </ol>
+            </div>
+        </li>
         {{end}}
         {{end}}
-    </table>
-
-    {{with .Sum}}
-    <h1>Итого: {{ . }} </h1>
-    {{end}}
-
-    <form action="/add_history_record" method="post" target="dummyframe">
-        <button class="btn btn-primary" type="submit">Сделать заказ</button>
-    </form></td>
-</body>
+    </ol>
 
 </html>
 {{end}}
@@ -90,6 +82,9 @@
         </li>
         <li class="nav-item">
             <a class="nav-link" href="/cart">Корзина</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/history">История заказов</a>
         </li>
     </ul>
 </nav>
