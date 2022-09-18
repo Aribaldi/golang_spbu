@@ -1,0 +1,9 @@
+{{define "main"}}
+<h1 class="alert alert-info">Пожалуйста, укажите адрес доставки</h1>
+<div class="container">
+    <form method="post" action="/addr_form">
+        <label class="form-control" for="addr">Адрес</label>
+        <input class="form-control" type="text" id="addr" name="addr">
+    </form>
+</div>
+{{end}}

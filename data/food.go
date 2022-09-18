@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
@@ -174,7 +175,7 @@ func FoodCategs() map[string]string {
 	return res
 }
 
-func CreateOrder(customer_id int32) {
+func CreateOrder(customer_id int32, addr string) {
 	var cart = CartInfo(int(customer_id))
 	var order_items []OrderDetail
 
@@ -186,8 +187,9 @@ func CreateOrder(customer_id int32) {
 
 	var db, _ = sql.Open("postgres", db_conn)
 	var order_id int
-	err := db.QueryRow(`INSERT INTO public.order (customer_id, datetime) VALUES ($1, $2) RETURNING public.order.order_id;`, customer_id, order.DateCreated).Scan(&order_id)
+	err := db.QueryRow(`INSERT INTO public.order (customer_id, datetime, address) VALUES ($1, $2, $3) RETURNING public.order.order_id;`, customer_id, order.DateCreated, addr).Scan(&order_id)
 	if err != nil {
+		fmt.Println(order_id)
 		panic(err)
 	}
 
@@ -273,6 +275,15 @@ func OrderHistory(customer_id int32) []Order {
 	}
 
 	return orders
+}
+
+func CleanUserCart(customer_id int32) {
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	_, err := db.Exec("DELETE FROM public.cart WHERE public.cart.customer_id = $1", customer_id)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // for rows.Next() {

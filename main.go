@@ -182,7 +182,22 @@ func categs(w http.ResponseWriter, r *http.Request) {
 func add_history_record(w http.ResponseWriter, r *http.Request) {
 	user := data.GetUserName(r)
 	if user.Fname != "" {
-		data.CreateOrder(int32(user.Id))
+		switch r.Method {
+		case "GET":
+			tmpl, err := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/addr_confirm.html")
+			if err != nil {
+				panic(err)
+			}
+			err2 := tmpl.ExecuteTemplate(w, "base", nil)
+			if err2 != nil {
+				panic(err2)
+			}
+		case "POST":
+			addr := r.FormValue("addr")
+			data.CreateOrder(int32(user.Id), addr)
+			data.CleanUserCart(int32(user.Id))
+			http.Redirect(w, r, "/final", http.StatusFound)
+		}
 	} else {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
@@ -287,6 +302,17 @@ func ViewOrdersHistory(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func final(w http.ResponseWriter, r *http.Request) {
+	tmpl, err1 := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/final.html")
+	if err1 != nil {
+		panic(err1)
+	}
+	err := tmpl.ExecuteTemplate(w, "base", nil)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./templates/static"))))
 	router.HandleFunc("/", indexPage)
@@ -296,9 +322,10 @@ func main() {
 	router.HandleFunc("/logout", logout).Methods("POST")
 	router.HandleFunc("/categs", categs)
 	router.HandleFunc("/signup", signup).Methods("POST", "GET")
-	router.HandleFunc("/add_history_record", add_history_record)
+	router.HandleFunc("/addr_form", add_history_record).Methods("POST", "GET")
 	router.HandleFunc("/cart", Cart)
 	router.HandleFunc("/history", ViewOrdersHistory)
+	router.HandleFunc("/final", final)
 	http.Handle("/", router)
 	CategMenuWrapper()
 	DishWrapper()
