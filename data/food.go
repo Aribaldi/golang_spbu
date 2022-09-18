@@ -20,6 +20,12 @@ type Dish struct {
 	Count      int
 }
 
+type Category struct {
+	Name           string
+	NormalizedName string
+	Description    string
+}
+
 type CartRecord struct {
 	Id         int32
 	DishId     int32
@@ -50,7 +56,8 @@ func DishTable(category string) []Dish {
 	var res []Dish
 	var db, _ = sql.Open("postgres", db_conn)
 	defer db.Close()
-	rows, err := db.Query("SELECT dish_id, dish_name, dish_price, dish_descr FROM public.menu WHERE dish_category = $1 ", category)
+
+	rows, err := db.Query("SELECT dish_id, dish_name, dish_price, dish_descr FROM public.menu WHERE dish_category = $1 ", FindCategoryByName(category).Name)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -130,8 +137,12 @@ func CartInfo(customer_id int) []CartRecord {
 	return res
 }
 
+func NormalizeCategoryName(category_name string) string {
+	return strings.Replace(strings.ToLower(category_name), " ", "_", -1)
+}
+
 func GetUrl(str string) string {
-	return "categs/" + strings.Replace(strings.ToLower(str), " ", "_", -1)
+	return "menu?category=" + NormalizeCategoryName(str)
 }
 
 func AddCateg(categ_name string, descr string) error {
@@ -331,4 +342,38 @@ LIMIT 5`
 	}
 
 	return dish_names
+}
+
+func CategDescription(categ string) string {
+	return FindCategoryByName(categ).Description
+}
+
+func FindCategoryByName(category_name string) Category {
+	log.Println("FindCategoryByName", category_name)
+
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	var row = db.QueryRow(`SELECT categ_name, description FROM public.food_categs WHERE REPLACE(LOWER(public.food_categs.categ_name), ' ', '_') = REPLACE(LOWER($1), ' ', '_')`, category_name)
+
+	result := Category{NormalizedName: NormalizeCategoryName(category_name)}
+	var err = row.Scan(&result.Name, &result.Description)
+	if err != nil {
+		panic(err)
+	}
+
+	return result
+}
+
+func CheckCustomer(customer_email string) bool {
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	var ce string
+	q, err := db.Query("SELECT login FROM public.customer WHERE login = $1", customer_email)
+	if err != nil {
+		return false
+	}
+	for q.Next() {
+		q.Scan(&ce)
+	}
+	return ce == customer_email
 }

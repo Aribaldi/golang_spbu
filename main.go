@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -23,36 +24,41 @@ var templateFuncs = template.FuncMap{"rangeStruct": RangeStructer, "isAdmin": fu
 
 type M map[string]interface{}
 
-func GetCategMenu(category string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := data.GetUserName(r)
-		if user.Fname != "" {
-			switch r.Method {
-			case "GET":
-				categ_menu := data.DishTable(category)
-				tmpl, err := template.New("tmpl").Funcs(templateFuncs).ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/categ_list.html")
-				if err != nil {
-					panic(err)
-				}
-				err = tmpl.ExecuteTemplate(w, "base", M{"categ_menu": categ_menu, "user": user})
-				if err != nil {
-					panic(err)
-				}
-			case "POST":
-				data.RemoveCateg(category)
-				http.Redirect(w, r, "/categs", http.StatusFound)
-			}
-		} else {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-		}
-	})
-}
+func CategoryHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Request menu")
+	log.Println(r)
+	var category_value string = r.FormValue("category")
+	var category = data.FindCategoryByName(category_value)
 
-func CategMenuWrapper() {
-	categs := data.FoodCategs()
-	for k, v := range categs {
-		full_path := "/" + v
-		http.Handle(full_path, GetCategMenu(k))
+	if category_value == "" {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+	}
+
+	log.Println("Category is", category)
+	log.Println("Method is", r.Method)
+
+	user := data.GetUserName(r)
+	if user.Fname != "" {
+		switch r.Method {
+		case "GET":
+			log.Println("Handle get category", category)
+			categ_menu := data.DishTable(category.Name)
+			descr := data.CategDescription(category.Name)
+			tmpl, err := template.New("tmpl").Funcs(templateFuncs).ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/categ_list.html")
+			if err != nil {
+				panic(err)
+			}
+			err = tmpl.ExecuteTemplate(w, "base", M{"categ_menu": categ_menu, "user": user, "descr": descr})
+			if err != nil {
+				panic(err)
+			}
+		case "POST":
+			log.Println("Handle remove category", category)
+			data.RemoveCateg(category.Name)
+			http.Redirect(w, r, "/categs", http.StatusFound)
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 }
 
@@ -63,7 +69,7 @@ func AddDish(id int) http.Handler {
 			switch r.Method {
 			case "POST":
 				if user.Role == "admin" {
-					new_price, _ := strconv.Atoi(r.FormValue("price"))
+					new_price, _ := strconv.ParseFloat(r.FormValue("price"), 32)
 					data.ChangeDishPrice(id, float32(new_price))
 					http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
 				} else {
@@ -226,6 +232,11 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		u.Errors["password"] = data.GetMsg(w, r, "password")
 		tmpl.ExecuteTemplate(w, "base", u)
 	case "POST":
+		if n := data.CheckCustomer(r.FormValue("email")); n {
+			data.SetMsg(w, "email", "Этот почтовый адрес уже зарегестирован!")
+			http.Redirect(w, r, "/signup", http.StatusFound)
+			return
+		}
 		f := r.FormValue("fName")
 		l := r.FormValue("lName")
 		em := r.FormValue("email")
@@ -236,7 +247,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			e := err.Error()
 			if re := strings.Contains(e, "Lname"); re {
-				data.SetMsg(w, "lname", "Пожалуйста, введите корректную фамилию!")
+				data.SetMsg(w, "lname", "Пожалуйста, введите корректное имя!")
 			}
 			if re := strings.Contains(e, "Email"); re {
 				data.SetMsg(w, "email", "Пожалуйста, введите корректный почтовый адрес!")
@@ -268,7 +279,8 @@ func signup(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddCategForm(w http.ResponseWriter, r *http.Request) {
-	u := &data.User{}
+	u := data.GetUserName(r)
+	fmt.Println(u.Role)
 	if u.Role == "admin" {
 		tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/add_categ.html")
 		err := tmpl.ExecuteTemplate(w, "base", u)
@@ -281,7 +293,7 @@ func AddCategForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddCateg(w http.ResponseWriter, r *http.Request) {
-	u := &data.User{}
+	u := data.GetUserName(r)
 	if u.Role == "admin" {
 		categ_name := r.FormValue("categ")
 		categ_descr := r.FormValue("description")
@@ -328,6 +340,7 @@ func main() {
 	router.HandleFunc("/login", login).Methods("POST")
 	router.HandleFunc("/add_categ_form", AddCategForm)
 	router.HandleFunc("/add_categ", AddCateg).Methods("POST")
+	router.HandleFunc("/menu", CategoryHandler).Methods("POST", "GET")
 	router.HandleFunc("/logout", logout).Methods("POST")
 	router.HandleFunc("/categs", categs)
 	router.HandleFunc("/signup", signup).Methods("POST", "GET")
@@ -336,7 +349,7 @@ func main() {
 	router.HandleFunc("/history", ViewOrdersHistory)
 	router.HandleFunc("/final", final)
 	http.Handle("/", router)
-	CategMenuWrapper()
+	// CategMenuWrapper()
 	DishWrapper()
 	http.ListenAndServe(":8000", nil)
 }
