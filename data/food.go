@@ -286,29 +286,49 @@ func CleanUserCart(customer_id int32) {
 	}
 }
 
-// for rows.Next() {
-// 	var datetime time.Time
-// 	var dish_name string
-// 	var order_quantity int
-// 	var total_price float32
-// 	err := rows.Scan(&temp.Id, &datetime, &dish_name, &order_quantity, &total_price)
-// 	if err != nil {
-// 		panic(err)
+func ChangeDishPrice(dish_id int, new_price float32) {
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	_, err := db.Exec("UPDATE public.menu SET dish_price = $1 WHERE dish_id = $2", new_price, dish_id)
+	if err != nil {
+		panic(err)
+	}
 
-// 	}
-// 	if temp.Id != int32(old_oid) {
-// 		res = append(res, temp)
-// 		fmt.Println(temp.Id, old_oid)
-// 		temp.DateCreated = datetime
-// 		temp.Items = append(temp.Items, OrderDetail{DishName: dish_name, Count: order_quantity, TotalPrice: total_price})
-// 		old_oid = temp.Id
-// 		if old_oid != 0 {
-// 			fmt.Println("UES")
-// 			temp = Order{}
-// 		}
-// 	} else {
-// 		fmt.Println("else", temp.Id, old_oid)
-// 		temp.Items = append(temp.Items, OrderDetail{DishName: dish_name, Count: order_quantity, TotalPrice: total_price})
-// 	}
+}
 
-// }
+// Get Top 5 popular dish names for provided customer
+func GetMostPopularDishNamesForUser(customer_id int32) []string {
+	const query = `WITH data AS (
+    SELECT dish_name, extract(epoch from ((now() at time zone 'utc') - datetime)) / 3600 as weight
+    FROM public.order 
+    INNER JOIN public.order_detail USING (order_Id)
+    INNER JOIN public.menu USING (dish_id)
+    WHERE customer_id = $1
+)
+SELECT dish_name, sum(0.2 * exp(-0.1 * data.weight)) as total_weight
+FROM data
+GROUP BY dish_name
+ORDER BY total_weight DESC
+LIMIT 5`
+
+	var db, _ = sql.Open("postgres", db_conn)
+	defer db.Close()
+	rows, err := db.Query(query, customer_id)
+	if err != nil {
+		panic(err)
+	}
+
+	var dish_names []string
+	for rows.Next() {
+		var dish_name string
+		var rating float32
+		err := rows.Scan(&dish_name, &rating)
+		if err != nil {
+			panic(err)
+		}
+
+		dish_names = append(dish_names, dish_name)
+	}
+
+	return dish_names
+}

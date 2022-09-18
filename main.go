@@ -17,7 +17,9 @@ import (
 
 var router = mux.NewRouter()
 
-var templateFuncs = template.FuncMap{"rangeStruct": RangeStructer}
+var templateFuncs = template.FuncMap{"rangeStruct": RangeStructer, "isAdmin": func(user data.User) bool {
+	return user.Role == "admin"
+}}
 
 type M map[string]interface{}
 
@@ -32,7 +34,7 @@ func GetCategMenu(category string) http.Handler {
 				if err != nil {
 					panic(err)
 				}
-				err = tmpl.ExecuteTemplate(w, "base", categ_menu)
+				err = tmpl.ExecuteTemplate(w, "base", M{"categ_menu": categ_menu, "user": user})
 				if err != nil {
 					panic(err)
 				}
@@ -60,8 +62,14 @@ func AddDish(id int) http.Handler {
 		if user.Fname != "" {
 			switch r.Method {
 			case "POST":
-				data.AddToCart(user.Id, id)
-				http.Redirect(w, r, "/cart", http.StatusFound)
+				if user.Role == "admin" {
+					new_price, _ := strconv.Atoi(r.FormValue("price"))
+					data.ChangeDishPrice(id, float32(new_price))
+					http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
+				} else {
+					data.AddToCart(user.Id, id)
+					http.Redirect(w, r, "/cart", http.StatusFound)
+				}
 			case "GET":
 				data.RemoveFromCart(user.Id, id)
 				http.Redirect(w, r, "/cart", http.StatusFound)
@@ -169,8 +177,9 @@ func categs(w http.ResponseWriter, r *http.Request) {
 
 	user := data.GetUserName(r)
 	categs := data.FoodCategs()
+	top_dishes := data.GetMostPopularDishNamesForUser(int32(user.Id))
 	if user.Fname != "" {
-		err := tmpl.ExecuteTemplate(w, "base", M{"categs": categs, "user": user})
+		err := tmpl.ExecuteTemplate(w, "base", M{"categs": categs, "user": user, "top_dishes": top_dishes})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

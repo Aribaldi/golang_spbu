@@ -51,17 +51,31 @@
             <td> <b> Цена </b> </td>
             <td> <b> Описание </b> </td>
             <td> <b> Добавить в корзину </b> </td>
+            {{with $.user}} {{if isAdmin .}} 
+            <td> <b> Изменить цену </b> </td>
+            {{end}}
+            {{end}}
         </tr>
-        {{range .}}
+        {{range $el := .categ_menu}}
         <tr>
-            <td>{{.Dish_name }}</td>
-            <td>{{.Dish_price}}</td>
-            <td>{{.Dish_descr}}</td>
+            <td>{{$el.Dish_name }}</td>
+            <td>{{$el.Dish_price}}</td>
+            <td>{{$el.Dish_descr}}</td>
             <td>
                 <iframe name="dummyframe" id="dummyframe" style="display: none;"></iframe>
-                <form action="/dish/{{.Id}}" method="POST" target="dummyframe">
+                <form action="/dish/{{$el.Id}}" method="POST" target="dummyframe">
                     <button class="btn btn-primary" type="submit">Добавить</button>
                 </form>
+            </td>
+            {{with $.user}} {{if isAdmin .}}
+            <td>
+            <form action="/dish/{{$el.Id}}" method="post" >
+                <label class="form-control" for="price">Изменить цену</label>
+                <input class="form-control" type="text" id="price" name="price">
+            </form>
+            </td>
+            {{end}}
+            {{end}}
         </tr>
         {{end}}
     </table>

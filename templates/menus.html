@@ -1,31 +1,62 @@
 {{define "main"}}
 {{template "navbar" .}}
-    {{with .user}}
-    <h1 class="alert alert-info">Здравствуйте, {{.Fname}} {{.Lname}}!</h1>
-    <h3 class="alert alert-info"> Пожалуйста, выберите категорию блюд </h3>
-    <hr>
-    {{end}}
+{{with .user}}
+<h1 class="alert alert-info">Здравствуйте, {{.Fname}} {{.Lname}}!</h1>
+<hr>
+{{end}}
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Menu types</title>
-    </head>
-    <body>
-        <h1 class="alert alert-info">Категории блюд:</h1>
-        <ul>
-            {{with .categs}}
+
+<head>
+    <meta charset="UTF-8">
+    <title>Menu types</title>
+</head>
+
+<body>
+    <div class="card" style="width: 100%;">
+        <div class="card-body">
+            <h5 class="card-title">Категории блюд</h5>
+
+            <p class="card-text">Пожалуйста, выберите категорию блюд из списка</p>
+
+            <ul class="list-group">
+                {{with .categs}}
                 {{range $key, $value := .}}
-                    <li><b> <a class="alert-link" href="{{ $value }}"> {{ $key }} 
-                        {{with $.user}} {{if isAdmin .}}  
+                <li class="list-group-item">
+                    <a class="alert-link" href="{{ $value }}"> {{ $key }}
+                        {{with $.user}} {{if isAdmin .}}
                         <form action="/{{ $value }}" method="post">
                             <button class="btn btn-danger" type="submit">Удалить</button>
                         </form>
-                        {{end}} 
-                        {{end}} </a></b></li>
+                        {{end}}
+                        {{end}}
+                    </a>
+                </li>
                 {{end}}
+                {{end}}
+            </ul>
+        </div>
+    </div>
+
+</br>
+
+    <div class="card" style="width: 100%;">
+        <div class="card-body">
+            <h5 class="card-title">Рекомендация на основе вашей истории заказов:</h5>
+
+            {{if not .top_dishes}}
+            <p class="card-text">Пока заказов нет</p>
+            {{else}}
+
+            <ul class="list-group">
+                {{range .top_dishes}}
+                <li class="list-group-item">{{.}}</li>
+                {{end}}
+            </ul>
             {{end}}
-        </ul>
-    </body>
+        </div>
+    </div>
+</body>
+
 </html>
 
 
@@ -35,23 +66,28 @@
 </form>
 {{end}}
 
+</br>
+</br>
+</br>
 <form action="/logout" method="post" style="text-align: right; ">
     <button class="btn btn-warning" type="submit">Logout</button>
 </form>
 {{end}}
 
 {{define "navbar"}}
-<nav class="navbar navbar-bg-primary">
-    <ul class="nav navbar-nav">
-        <li class="nav-item">
-            <a class="nav-link" href="/categs">Категории</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="/cart">Корзина</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="/history">История заказов</a>
-        </li>
-    </ul>
+<nav class="navbar navbar-expand-lg bg-light">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
+            aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+            <div class="navbar-nav">
+                <a class="nav-link active" aria-current="page" href="/categs">Категории</a>
+                <a class="nav-link" href="/cart">Корзина</a>
+                <a class="nav-link" href="/history">История заказов</a>
+            </div>
+        </div>
+    </div>
 </nav>
 {{end}}

@@ -73,9 +73,14 @@
     <h1>Итого: {{ . }} </h1>
     {{end}}
 
+
+    {{if not .Dish}}
+    <i class="card-text">Добавьте хотя бы одно блюдо</i>
+    {{else}}
     <form action="/addr_form" method="get" target="dummyframe">
         <button class="btn btn-primary" type="submit">Сделать заказ</button>
     </form></td>
+    {{end}}
 </body>
 
 </html>
@@ -83,14 +88,19 @@
 
 
 {{define "navbar"}}
-<nav class="navbar navbar-bg-primary">
-    <ul class="nav navbar-nav">
-        <li class="nav-item">
-            <a class="nav-link" href="/categs">Категории</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="/cart">Корзина</a>
-        </li>
-    </ul>
+<nav class="navbar navbar-expand-lg bg-light">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
+            aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+            <div class="navbar-nav">
+                <a class="nav-link active" aria-current="page" href="/categs">Категории</a>
+                <a class="nav-link" href="/cart">Корзина</a>
+                <a class="nav-link" href="/history">История заказов</a>
+            </div>
+        </div>
+    </div>
 </nav>
 {{end}}
