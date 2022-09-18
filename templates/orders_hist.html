@@ -55,9 +55,9 @@
                 <ol class="list-group list-group-numbered">
                     {{range .Items}}
                     <li class="list-group-item d-flex justify-content-between align-items-start">
-                        <div class="ms-2 me-auto">
+                        <div class="ms-2 me-auto ">
                             <div class="fw-bold">{{.Dish.Dish_name}}</div>
-                            <p>{{.TotalPrice}}</p>
+                            <p>{{.TotalPrice}} руб.</p>
                         </div>
 
                         <span class="badge bg-primary rounded-pill">{{ .Count }}</span>

@@ -23,22 +23,26 @@ type M map[string]interface{}
 
 func GetCategMenu(category string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "GET":
-			categ_menu := data.DishTable(category)
-			tmpl, err := template.New("tmpl").Funcs(templateFuncs).ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/categ_list.html")
-			if err != nil {
-				panic(err)
+		user := data.GetUserName(r)
+		if user.Fname != "" {
+			switch r.Method {
+			case "GET":
+				categ_menu := data.DishTable(category)
+				tmpl, err := template.New("tmpl").Funcs(templateFuncs).ParseFiles("./templates/base.html", "./templates/index.html", "./templates/main.html", "./templates/categ_list.html")
+				if err != nil {
+					panic(err)
+				}
+				err = tmpl.ExecuteTemplate(w, "base", categ_menu)
+				if err != nil {
+					panic(err)
+				}
+			case "POST":
+				data.RemoveCateg(category)
+				http.Redirect(w, r, "/categs", http.StatusFound)
 			}
-			err = tmpl.ExecuteTemplate(w, "base", categ_menu)
-			if err != nil {
-				panic(err)
-			}
-		case "POST":
-			data.RemoveCateg(category)
-			http.Redirect(w, r, "/categs", http.StatusFound)
+		} else {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
-
 	})
 }
 
@@ -53,13 +57,17 @@ func CategMenuWrapper() {
 func AddDish(id int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := data.GetUserName(r)
-		switch r.Method {
-		case "POST":
-			data.AddToCart(user.Id, id)
-			http.Redirect(w, r, "/cart", http.StatusFound)
-		case "GET":
-			data.RemoveFromCart(user.Id, id)
-			http.Redirect(w, r, "/cart", http.StatusFound)
+		if user.Fname != "" {
+			switch r.Method {
+			case "POST":
+				data.AddToCart(user.Id, id)
+				http.Redirect(w, r, "/cart", http.StatusFound)
+			case "GET":
+				data.RemoveFromCart(user.Id, id)
+				http.Redirect(w, r, "/cart", http.StatusFound)
+			}
+		} else {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
 
 	})
@@ -75,13 +83,17 @@ func DishWrapper() {
 
 func Cart(w http.ResponseWriter, r *http.Request) {
 	u := data.GetUserName(r)
-	dish := data.CartInfo(u.Id)
-	var sum float32 = 0
-	for _, d := range dish {
-		sum += d.Overall
+	if u.Fname != "" {
+		dish := data.CartInfo(u.Id)
+		var sum float32 = 0
+		for _, d := range dish {
+			sum += d.Overall
+		}
+		tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/cart.html")
+		tmpl.ExecuteTemplate(w, "base", M{"Dish": dish, "Sum": sum})
+	} else {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
-	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/cart.html")
-	tmpl.ExecuteTemplate(w, "base", M{"Dish": dish, "Sum": sum})
 }
 
 func RangeStructer(args ...interface{}) []interface{} {
@@ -162,12 +174,18 @@ func categs(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 }
 
 func add_history_record(w http.ResponseWriter, r *http.Request) {
 	user := data.GetUserName(r)
-	data.CreateOrder(int32(user.Id))
+	if user.Fname != "" {
+		data.CreateOrder(int32(user.Id))
+	} else {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+	}
 
 }
 
@@ -227,30 +245,44 @@ func signup(w http.ResponseWriter, r *http.Request) {
 
 func AddCategForm(w http.ResponseWriter, r *http.Request) {
 	u := &data.User{}
-	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/add_categ.html")
-	err := tmpl.ExecuteTemplate(w, "base", u)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if u.Role == "admin" {
+		tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/add_categ.html")
+		err := tmpl.ExecuteTemplate(w, "base", u)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 	}
 }
 
 func AddCateg(w http.ResponseWriter, r *http.Request) {
-	categ_name := r.FormValue("categ")
-	categ_descr := r.FormValue("description")
-	data.AddCateg(categ_name, categ_descr)
-	http.Redirect(w, r, "/categs", http.StatusFound)
+	u := &data.User{}
+	if u.Role == "admin" {
+		categ_name := r.FormValue("categ")
+		categ_descr := r.FormValue("description")
+		data.AddCateg(categ_name, categ_descr)
+		http.Redirect(w, r, "/categs", http.StatusFound)
+
+	} else {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	}
 
 }
 
 func ViewOrdersHistory(w http.ResponseWriter, r *http.Request) {
 	user := data.GetUserName(r)
-	orders := data.OrderHistory(int32(user.Id))
-	log.Println("Showing orders for user", user.Id)
-	log.Println(orders)
-	tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/orders_hist.html")
-	err := tmpl.ExecuteTemplate(w, "base", M{"orders": orders, "user": user})
-	if err != nil {
-		panic(err)
+	if user.Fname != "" {
+		orders := data.OrderHistory(int32(user.Id))
+		log.Println("Showing orders for user", user.Id)
+		log.Println(orders)
+		tmpl, _ := template.ParseFiles("./templates/base.html", "./templates/index.html", "./templates/orders_hist.html")
+		err := tmpl.ExecuteTemplate(w, "base", M{"orders": orders, "user": user})
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 
 }
